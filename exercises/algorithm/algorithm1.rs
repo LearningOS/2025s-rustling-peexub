@@ -2,11 +2,11 @@
 	single linked list merge
 	This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
+
 
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
-use std::vec::*;
+
 
 #[derive(Debug)]
 struct Node<T> {
@@ -60,6 +60,7 @@ impl<T> LinkedList<T> {
         self.get_ith_node(self.start, index)
     }
 
+
     fn get_ith_node(&mut self, node: Option<NonNull<Node<T>>>, index: i32) -> Option<&T> {
         match node {
             None => None,
@@ -69,15 +70,79 @@ impl<T> LinkedList<T> {
             },
         }
     }
-	pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
-	{
-		//TODO
-		Self {
-            length: 0,
-            start: None,
-            end: None,
+
+    fn pop_front(&mut self) -> Option<NonNull<Node<T>>> {
+        let node_ptr = self.start?;
+        unsafe {
+            let node = node_ptr.as_ptr();
+            self.start = (*node).next;
+            if self.start.is_none() {
+                self.end = None;
+            }
+            self.length -= 1;
         }
-	}
+        Some(node_ptr)
+    }
+
+    fn add_node(&mut self, node_ptr: NonNull<Node<T>>) {
+        unsafe {
+            (*node_ptr.as_ptr()).next = None;
+        }
+        match self.end {
+            None => {
+                self.start = Some(node_ptr);
+                self.end = Some(node_ptr);
+            }
+            Some(end_ptr) => unsafe {
+                (*end_ptr.as_ptr()).next = Some(node_ptr);
+                self.end = Some(node_ptr);
+            },
+        }
+        self.length += 1;
+    }
+    
+}
+impl<T: PartialOrd> LinkedList<T> {
+    pub fn merge(mut list_a: LinkedList<T>, mut list_b: LinkedList<T>) -> Self {
+        let mut merged_list = LinkedList::new();
+
+        loop {
+            let a_node = list_a.start;
+            let b_node = list_b.start;
+
+            match (a_node, b_node) {
+                (Some(a), Some(b)) => unsafe {
+                    let a_val = &(*a.as_ptr()).val;
+                    let b_val = &(*b.as_ptr()).val;
+
+                    if a_val <= b_val {
+                        if let Some(node) = list_a.pop_front() {
+                            merged_list.add_node(node);
+                        }
+                    } else {
+                        if let Some(node) = list_b.pop_front() {
+                            merged_list.add_node(node);
+                        }
+                    }
+                },
+                (Some(_), None) => {
+                    while let Some(node) = list_a.pop_front() {
+                        merged_list.add_node(node);
+                    }
+                    break;
+                }
+                (None, Some(_)) => {
+                    while let Some(node) = list_b.pop_front() {
+                        merged_list.add_node(node);
+                    }
+                    break;
+                }
+                (None, None) => break,
+            }
+        }
+
+        merged_list
+    }
 }
 
 impl<T> Display for LinkedList<T>
